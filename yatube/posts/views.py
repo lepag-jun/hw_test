@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 
 from .models import Post, Group, User
-from .forms import PostForm
+from .forms import PostForm, CommentForm
 
 
 def index(request):
@@ -51,8 +51,12 @@ def profile(request, username):
 def post_detail(request, post_id):
     template = 'posts/post_detail.html'
     post = get_object_or_404(Post, id=post_id)
+    form = CommentForm()
+    comments = post.comments.all()
     context = {
         'post': post,
+        'form': form,
+        'comments': comments,
     }
 
     return render(request, template, context)
@@ -98,3 +102,16 @@ def post_edit(request, post_id):
          'post_id': post.id,
          },
     )
+
+
+@login_required
+def add_comment(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    form = CommentForm(request.POST or None)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.author = request.user
+        comment.post = post
+        comment.save()
+
+    return redirect('posts:post_detail', post_id=post_id)
